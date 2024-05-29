@@ -1,2 +1,4 @@
-# web-420
-Repository for work in WEB 420
+# WEB 420 RESTful APIs
+## Contributors
+- Richard Krasso
+- Brandon Salvemini
