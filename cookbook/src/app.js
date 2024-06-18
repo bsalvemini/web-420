@@ -10,6 +10,9 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const createError = require("http-errors");
 
+// Require statement for recipes.js file
+const recipes = require("../database/recipes");
+
 // Create express application
 const app = express();
 
@@ -19,7 +22,7 @@ app.use(express.json());
 // Parse incoming urlencoded payloads
 app.use(express.urlencoded({ extended: true }));
 
-// Get route
+// Get route for root
 app.get("/", async (req, res, next) => {
   // HTML content for the landing page
   const html = `
@@ -70,6 +73,38 @@ app.get("/", async (req, res, next) => {
     </html>
 `; // end HTML content for the landing page
   res.send(html); // Sends the HTML content to the client
+});
+
+// Get route for /api/recipes
+app.get("/api/recipes", async (req, res, next) => {
+  try {
+    const allRecipes = await recipes.find();
+    console.log("All Recipes:", allRecipes); // Log all recipes
+    res.send(allRecipes); // Sends response with all books
+  } catch (err) {
+    console.error("Error: ", err.message); // Logs error message
+    next(err); // Passes error to the next middleware
+  }
+});
+
+// Get route for /api/recipes/:id
+app.get("/api/recipes/:id", async (req, res, next) => {
+  try {
+    let { id } = req.params;
+    id = parseInt(id)
+
+    if (isNaN(id)) {
+      return next(createError(400, "Input must be a number"))
+    }
+
+    const recipe = await recipes.findOne({id: id});
+
+    console.log("Recipe: ", recipe);
+    res.send(recipe);
+  } catch (err) {
+    console.error("Error: ", err.message);
+    next(err);
+  }
 });
 
 // catch 404 error and send to error handler
