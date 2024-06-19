@@ -10,6 +10,9 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const createError = require("http-errors");
 
+// Require statement for books.js file
+const books = require("../database/books");
+
 // Create express application
 const app = express();
 
@@ -22,8 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 // Get route for root
 app.get("/", async (req, res, next) => {
   // HTML markup to for the landing page
-  const html =
-  `
+  const html = `
   <html>
   <head>
     <title>In-N-Out-Books app</title>
@@ -51,10 +53,45 @@ app.get("/", async (req, res, next) => {
     </div>
   </body>
 </html>
-  `
+  `;
 
   // Send HTML to the client
   res.send(html);
+});
+
+// GET route for /api/books
+app.get("/api/books", async (req, res, next) => {
+  try {
+    const allBooks = await books.find(); // Gets all books
+    console.log("All Books: ", allBooks); // Logs all books
+    res.send(allBooks); // Sends response with all books
+  } catch (err) {
+    console.error("Error: ", err.message); // Logs error message
+    next(err); // Pass the error to the middleware
+  }
+});
+
+// GET route for /api/books/:id
+app.get("/api/books/:id", async (req, res, next) => {
+  try {
+    let { id } = req.params; // Get the id from the params
+    id = parseInt(id); // Convert the id to an integer
+
+    // If id is not a number
+    if (isNaN(id)) {
+      // Return a 400 error with a message
+      return next(createError(400, "Input must be a number"));
+    }
+
+    // Find the book with the given id
+    const book = await books.findOne({ id: id });
+
+    console.log("Book: ", book); // Log the book
+    res.send(book); // Send a response with the book
+  } catch (err) {
+    console.error("Error: ", err.message); // Log error message
+    next(err); // Pass the error to the middleware
+  }
 });
 
 // catch 404 error and send to error handler
