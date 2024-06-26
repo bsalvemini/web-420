@@ -94,6 +94,48 @@ app.get("/api/books/:id", async (req, res, next) => {
   }
 });
 
+// POST route for /api/books
+app.post("/api/books", async (req, res, next) => {
+  try {
+    // Get book data from request body
+    const newBook = req.body;
+
+    // Array containing the expected key values
+    const expectedKeys = ["id", "title", "author"];
+    const receivedKeys = Object.keys(newBook); // Gets the key values from the newBook object
+
+    // If all of the received keys are in the expected keys and the number of fields match
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys); // Log Bad Request error
+      return next(createError(400, "Bad Request")); // Create a 404 error with Bad Request message
+    }
+
+    // Insert a new book into the database
+    const result = await books.insertOne(newBook);
+    console.log("Result: ", result); // Log result to the console
+    res.status(201).send({ id: result.ops[0].id }); // Send a 201 status code and the id of the new book
+  } catch (err) {
+    console.error("Error: ", err.message); // Log error message
+    next(err); // Pass the error to the middleware
+  }
+});
+
+// DELETE route for /api/books/:id
+app.delete("/api/books/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params; // Get the id from the params
+    const result = await books.deleteOne({ id: parseInt(id) }); // Delete the book with the given id, converting the id to an integer
+    console.log("Result :", result); // Log result to the console
+    res.status(204).send(); // Send a 204 status code
+  } catch (err) {
+    console.error("Error: ", err.message); // Log error message
+    next(err); // Pass the error to the middleware
+  }
+});
+
 // catch 404 error and send to error handler
 app.use(function (req, res, next) {
   next(createError(404));
