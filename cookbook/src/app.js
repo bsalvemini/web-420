@@ -136,7 +136,7 @@ app.post("/api/recipes", async (req, res, next) => {
 app.delete("/api/recipes/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await recipes.deleteOne({ id:parseInt(id) });
+    const result = await recipes.deleteOne({ id: parseInt(id) });
     console.log("Result: ", result);
     res.status(204).send();
   } catch (err) {
@@ -145,6 +145,41 @@ app.delete("/api/recipes/:id", async (req, res, next) => {
     }
 
     console.error("Error: ", err.message);
+    next(err);
+  }
+});
+
+// PUT route for /api/recipes/:id
+app.put("/api/recipes/:id", async (req, res, next) => {
+  try {
+    let { id } = req.params;
+    let recipe = req.body;
+    id = parseInt(id);
+
+    if (isNaN(id)) {
+      return next(createError(400, "Input must be a number"));
+    }
+
+    const expectedKeys = ["name", "ingredients"];
+    const receivedKeys = Object.keys(recipe);
+
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys);
+      return next(createError(400, "Bad Request"));
+    }
+
+    const result = await recipes.updateOne({ id: id }, recipe);
+    console.log("Result: ", result);
+    res.status(204).send();
+  } catch (err) {
+    if (err.message === "No matching item found") {
+      console.log("Recipe not found", err.message);
+      return next(createError(404, "Recipe not found"));
+    }
+    console.log("Error: ", err.message);
     next(err);
   }
 });
