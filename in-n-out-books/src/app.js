@@ -136,6 +136,46 @@ app.delete("/api/books/:id", async (req, res, next) => {
   }
 });
 
+// PUT route for /api/books/:id
+app.put("/api/books/:id", async (req, res, next) => {
+  try {
+    let { id } = req.params; // Get the id from the params
+    let book = req.body; // Get the book data from the request body
+    id = parseInt(id); // Convert the id to an integer
+
+    // If id is not a number
+    if (isNaN(id)) {
+      // Return a 400 error with a message
+      return next(createError(400, "Input must be a number"));
+    }
+
+    // Array containing the expected key values
+    const expectedKeys = ["title", "author"];
+    const receivedKeys = Object.keys(book); // Gets the key values from the book object
+
+    // If all of the received keys are in the expected keys and the number of fields match
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys); // Log Bad Request error
+      return next(createError(400, "Bad Request")); // Create a 404 error with Bad Request message
+    }
+
+    const result = await books.updateOne({ id: id }, book); // Update the book using the given id
+    console.log("Result: ", result); // Log result to the console
+    res.status(204).send(); // Send a 204 status code
+  } catch (err) {
+    // If err.message is No matching item found
+    if (err.message === "No matching item found") {
+      console.log("Book not found", err.message); // Log error to the console
+      return next(createError(404, "Book not found")); // Return a 404 error
+    }
+    console.error("Error: ", err.message); // Log error message
+    next(err); // Pass the error to the middleware
+  }
+});
+
 // catch 404 error and send to error handler
 app.use(function (req, res, next) {
   next(createError(404));

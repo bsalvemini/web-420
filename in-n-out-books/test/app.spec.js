@@ -57,3 +57,33 @@ describe("Chapter 4: API Tests", () => {
     expect(res.statusCode).toEqual(204);
   });
 });
+
+describe("Chapter 5: API Tests", () => {
+  it("should update a book and return a 204-status code", async () => {
+    const res = await request(app).put("/api/books/1").send({
+      title: "LOTR The Fellowship of the Ring",
+      author: "J.R.R. Tolkien",
+    });
+
+    expect(res.statusCode).toEqual(204);
+  });
+
+  it("should return a 400-status code when using a non-numeric id", async () => {
+    const res = await request(app).put("/api/books/foo").send({
+      name: "Test Book",
+      author: "Test Author",
+    });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toEqual("Input must be a number");
+  });
+
+  it("should return a 400-status code when updating a book with a missing title", async () => {
+    const res = await request(app).put("/api/books/1").send({
+      author: "Test Author",
+    });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toEqual("Bad Request");
+  });
+});
