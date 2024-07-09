@@ -13,6 +13,9 @@ const createError = require("http-errors");
 // Require statement for books.js file
 const books = require("../database/books");
 
+// Require statement for users.js file
+const users = require("../database/users");
+
 // Create express application
 const app = express();
 
@@ -159,7 +162,7 @@ app.put("/api/books/:id", async (req, res, next) => {
       receivedKeys.length !== expectedKeys.length
     ) {
       console.error("Bad Request: Missing keys or extra keys", receivedKeys); // Log Bad Request error
-      return next(createError(400, "Bad Request")); // Create a 404 error with Bad Request message
+      return next(createError(400, "Bad Request")); // Create a 400 error with Bad Request message
     }
 
     const result = await books.updateOne({ id: id }, book); // Update the book using the given id
@@ -172,6 +175,55 @@ app.put("/api/books/:id", async (req, res, next) => {
       return next(createError(404, "Book not found")); // Return a 404 error
     }
     console.error("Error: ", err.message); // Log error message
+    next(err); // Pass the error to the middleware
+  }
+});
+
+// POST route for /api/login
+app.post("/api/login", async (req, res, next) => {
+  try {
+    // Get the credentials from the request body
+    const credentials = req.body;
+
+    // Array containing the expected key values
+    const expectedKeys = ["email", "password"];
+    const receivedKeys = Object.keys(credentials); // Gets the key values from the credentials object
+
+    // If all of the received keys are in the expected keys and the number of fields match
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys); // Log Bad Request error
+      return next(createError(400, "Bad Request")); // Create a 400 error with Bad Request message
+    }
+
+    let userData; // Variable to hold user data from database
+    let userNotFound; // Bool to hold if user was found or not
+    try {
+      // Lookup the user in the database by their email address
+      userData = await users.findOne({ email: credentials.email });
+    } catch (err) {
+      // Set user not found to true if a catch occurs, meaning the user was not found in the database
+      userNotFound = true;
+    }
+
+    // If the user is not found
+    if (userNotFound) {
+      return next(createError(401, "Unauthorized")); // Create a 401 error with Unauthorized message
+    }
+
+    // Compare the password from the user to the password hash stored in the database
+    // credentials.password is from the user, userData.password is the password hash from the database
+    if (!bcrypt.compareSync(credentials.password, userData.password)) {
+      // if the password and password hash do not match
+      // return 401
+      return next(createError(401, "Unauthorized")); // Create a 401 error with Unauthorized message
+    }
+
+    res.status(200).send({ message: "Authentication successful" }); // Send a 204 response with Authentication successful message
+  } catch (err) {
+    console.log("Error: ", err.message); // Log error message
     next(err); // Pass the error to the middleware
   }
 });
