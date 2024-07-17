@@ -16,6 +16,30 @@ const books = require("../database/books");
 // Require statement for users.js file
 const users = require("../database/users");
 
+// Set up Ajv
+const Ajv = require("ajv");
+const ajv = new Ajv();
+
+// Schema for ajv validation
+const securityQuestionsSchema = {
+  type: "object",
+  properties: {
+    securityQuestions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          answer: { type: "string" },
+        },
+        required: ["answer"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["securityQuestions"],
+  additionalProperties: false,
+};
+
 // Create express application
 const app = express();
 
@@ -227,6 +251,51 @@ app.post("/api/login", async (req, res, next) => {
     next(err); // Pass the error to the middleware
   }
 });
+
+// POST route for /api/users/:email/verify-security-question
+app.post(
+  "/api/users/:email/verify-security-question",
+  async (req, res, next) => {
+    try {
+      // Get the email from the request parameters
+      const { email } = req.params;
+
+      // Get the security questions from the request body
+      const { securityQuestions } = req.body;
+
+      // Compile securityQuestionsSchema and prepare it for validation
+      const validate = ajv.compile(securityQuestionsSchema);
+      const valid = validate(req.body); // validate the request body
+
+      // If not valid
+      if (!valid) {
+        console.error("Bad Request: Invalid request body", validate.errors); // Log validation errors
+        return next(createError(400, "Bad Request")); // Create a 400 error with Bad Request message
+      }
+
+      // Retrieve the user from the database using the supplied email address
+      const user = await users.findOne({ email: email });
+
+      // Check the saved security questions against the ones passed in the request body
+      if (
+        securityQuestions[0].answer !== user.securityQuestions[0].answer ||
+        securityQuestions[1].answer !== user.securityQuestions[1].answer ||
+        securityQuestions[2].answer !== user.securityQuestions[2].answer
+      ) {
+        console.error("Unauthorized: Security questions do not match"); // Log error
+        return next(createError(401, "Unauthorized")); // Create a 401 error with Unauthorized message
+      }
+
+      // Send a 200 response with Security questions successfully answered message
+      res
+        .status(200)
+        .send({ message: "Security questions successfully answered" });
+    } catch (err) {
+      console.error("Error: ", err.message); // Log error message
+      next(err); // Pass the error to the middleware
+    }
+  }
+);
 
 // catch 404 error and send to error handler
 app.use(function (req, res, next) {
